@@ -2,7 +2,8 @@ import socket
 import threading
 import unittest
 
-from server import handle_client
+from connection import ClientConnection
+from server import build_handler
 
 
 def request(path="/add?a=2&b=3", method="GET", headers="Host: localhost\r\n", body=b""):
@@ -16,6 +17,7 @@ class CalculatorTests(unittest.TestCase):
         cls.listener.bind(("127.0.0.1", 0))
         cls.listener.listen()
         cls.listener.settimeout(0.1)
+        cls.handler = build_handler()
         cls.running = True
         cls.worker = threading.Thread(target=cls.accept_clients)
         cls.worker.start()
@@ -27,7 +29,8 @@ class CalculatorTests(unittest.TestCase):
                 client, address = cls.listener.accept()
             except socket.timeout:
                 continue
-            threading.Thread(target=handle_client, args=(client,), daemon=True).start()
+            connection = ClientConnection(client, cls.handler)
+            threading.Thread(target=connection.run, daemon=True).start()
 
     @classmethod
     def tearDownClass(cls):
